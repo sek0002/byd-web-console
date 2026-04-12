@@ -47,6 +47,7 @@ Optional:
 ```env
 BYD_VIN=your-vin-if-you-have-more-than-one-vehicle
 BYD_TIME_ZONE=Australia/Melbourne
+BYD_BASE_URL=https://dilinksuperappserver-au.byd.auto
 HOST=0.0.0.0
 PORT=8010
 ```
