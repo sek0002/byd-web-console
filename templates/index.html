@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_title }}</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111d;
+      --panel: rgba(12, 20, 33, 0.92);
+      --panel-soft: rgba(17, 24, 39, 0.86);
+      --line: rgba(148, 163, 184, 0.18);
+      --text: #edf4ff;
+      --muted: #9aa9bd;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.14);
+      --ok: #10b981;
+      --danger: #f87171;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(56, 189, 248, 0.16), transparent 28%),
+        radial-gradient(circle at top left, rgba(16, 185, 129, 0.12), transparent 20%),
+        linear-gradient(180deg, #08111d 0%, #101827 100%);
+    }
+    main {
+      width: min(1180px, calc(100% - 28px));
+      margin: 28px auto 40px;
+    }
+    .hero, .grid {
+      display: grid;
+      gap: 18px;
+    }
+    .hero {
+      grid-template-columns: 1.4fr 1fr;
+      margin-bottom: 18px;
+    }
+    .grid {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+    .span-8 { grid-column: span 8; }
+    .span-4 { grid-column: span 4; }
+    .span-6 { grid-column: span 6; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+    }
+    .eyebrow {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 700;
+      font-size: 0.74rem;
+    }
+    h1 {
+      margin: 8px 0 10px;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1;
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 1.1rem;
+    }
+    .subtitle, .tiny, .command-copy {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      font-weight: 600;
+    }
+    .pill strong { color: var(--accent); }
+    .alert {
+      margin-bottom: 16px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid transparent;
+    }
+    .alert.success {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.35);
+      color: #d1fae5;
+    }
+    .alert.error {
+      background: rgba(248, 113, 113, 0.12);
+      border-color: rgba(248, 113, 113, 0.35);
+      color: #fee2e2;
+    }
+    .metrics, .actions, .capabilities {
+      display: grid;
+      gap: 12px;
+    }
+    .metrics { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+    .actions { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .metric, .list-row, form {
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+    }
+    .metric-label {
+      color: var(--muted);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .metric-value {
+      font-size: 1.14rem;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+    .list-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .list-row span:first-child { color: var(--muted); }
+    form {
+      display: grid;
+      gap: 10px;
+    }
+    .command-title { font-weight: 700; }
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    select, button {
+      width: 100%;
+      border-radius: 12px;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      background: rgba(15, 23, 42, 0.92);
+      color: var(--text);
+      font: inherit;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      font-weight: 700;
+    }
+    button.secondary {
+      background: rgba(51, 65, 85, 0.92);
+      border: 1px solid var(--line);
+    }
+    iframe.map {
+      width: 100%;
+      min-height: 320px;
+      border: 0;
+      border-radius: 18px;
+      background: #020617;
+    }
+    details {
+      margin-top: 14px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      margin: 14px 0 0;
+      color: #cbd5e1;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+    @media (max-width: 960px) {
+      .hero, .grid { grid-template-columns: 1fr; }
+      .span-8, .span-6, .span-4 { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    {% if notice %}
+    <div class="alert success">{{ notice }}</div>
+    {% endif %}
+    {% if error %}
+    <div class="alert error">{{ error }}</div>
+    {% endif %}
+
+    <section class="hero">
+      <article class="panel">
+        <div class="eyebrow">Standalone BYD App</div>
+        <h1>{{ snapshot.model_name or "BYD Vehicle" }}</h1>
+        <p class="subtitle">
+          A dedicated `pyBYD` control console designed to run behind `systemd` and a reverse proxy. The page fetches live
+          vehicle information and exposes remote actions without depending on the older solar monitor app.
+        </p>
+        <div class="pills">
+          <div class="pill"><strong>VIN</strong> {{ snapshot.vin or "-" }}</div>
+          <div class="pill"><strong>Battery</strong> {{ snapshot.soc_display }}</div>
+          <div class="pill"><strong>Range</strong> {{ snapshot.range_display }}</div>
+          <div class="pill"><strong>Lock</strong> {{ snapshot.lock_state or "-" }}</div>
+          <div class="pill"><strong>Windows</strong> {{ snapshot.window_state or "-" }}</div>
+        </div>
+        <p class="tiny">Last telemetry: {{ snapshot.observed_at or "-" }}</p>
+      </article>
+
+      <article class="panel">
+        <h2>Refresh</h2>
+        <form method="post" action="/command">
+          <input type="hidden" name="action" value="refresh">
+          <button type="submit" class="secondary">Fetch latest data</button>
+        </form>
+        <p class="tiny">Remote commands are {{ "enabled" if commands_enabled else "disabled until BYD_CONTROL_PIN is set" }}.</p>
+      </article>
+    </section>
+
+    <section class="grid">
+      <article class="panel span-8">
+        <h2>Vehicle State</h2>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Battery</div><div class="metric-value">{{ snapshot.soc_display }}</div></div>
+          <div class="metric"><div class="metric-label">Range</div><div class="metric-value">{{ snapshot.range_display }}</div></div>
+          <div class="metric"><div class="metric-label">Charging</div><div class="metric-value">{{ snapshot.charging_display }}</div></div>
+          <div class="metric"><div class="metric-label">Connected</div><div class="metric-value">{{ snapshot.connected_display }}</div></div>
+          <div class="metric"><div class="metric-label">Power</div><div class="metric-value">{{ snapshot.power_display }}</div></div>
+          <div class="metric"><div class="metric-label">Charge ETA</div><div class="metric-value">{{ snapshot.eta_display }}</div></div>
+          <div class="metric"><div class="metric-label">Inside Temp</div><div class="metric-value">{{ snapshot.inside_temp_display }}</div></div>
+          <div class="metric"><div class="metric-label">Outside Temp</div><div class="metric-value">{{ snapshot.outside_temp_display }}</div></div>
+          <div class="metric"><div class="metric-label">Climate</div><div class="metric-value">{{ snapshot.climate_display }}</div></div>
+          <div class="metric"><div class="metric-label">Steering Heat</div><div class="metric-value">{{ snapshot.steering_heat_display }}</div></div>
+          <div class="metric"><div class="metric-label">Battery Heat</div><div class="metric-value">{{ snapshot.battery_heat_display }}</div></div>
+          <div class="metric"><div class="metric-label">Odometer</div><div class="metric-value">{{ snapshot.odometer_display }}</div></div>
+        </div>
+      </article>
+
+      <article class="panel span-4">
+        <h2>Capabilities</h2>
+        <div class="capabilities">
+          {% for item in capability_rows %}
+          <div class="list-row"><span>{{ item.label }}</span><strong>{{ item.value }}</strong></div>
+          {% endfor %}
+        </div>
+      </article>
+
+      <article class="panel span-8">
+        <h2>Remote Commands</h2>
+        <div class="actions">
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="lock">
+            <div class="command-title">Lock doors</div>
+            <div class="command-copy">Locks all vehicle doors.</div>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Lock</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="unlock">
+            <div class="command-title">Unlock doors</div>
+            <div class="command-copy">Unlocks all vehicle doors.</div>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Unlock</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="climate_start">
+            <div class="command-title">Start climate</div>
+            <div class="command-copy">Choose target temperature and run time.</div>
+            <label>Temperature
+              <select name="temperature">
+                {% for temp in climate_temperatures %}
+                <option value="{{ temp }}" {% if temp == 21 %}selected{% endif %}>{{ temp }} C</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>Duration
+              <select name="duration">
+                {% for duration in climate_durations %}
+                <option value="{{ duration }}" {% if duration == 20 %}selected{% endif %}>{{ duration }} min</option>
+                {% endfor %}
+              </select>
+            </label>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Start climate</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="climate_stop">
+            <div class="command-title">Stop climate</div>
+            <div class="command-copy">Stops HVAC and related heating projections.</div>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Stop climate</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="find_car">
+            <div class="command-title">Find car</div>
+            <div class="command-copy">Triggers horn and lights.</div>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Find car</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="flash_lights">
+            <div class="command-title">Flash lights</div>
+            <div class="command-copy">Visual locate command.</div>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Flash lights</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="close_windows">
+            <div class="command-title">Close windows</div>
+            <div class="command-copy">Closes all windows.</div>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Close windows</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="steering_heat_on">
+            <div class="command-title">Steering heat on</div>
+            <div class="command-copy">Enables steering wheel heating.</div>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Enable</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="steering_heat_off">
+            <div class="command-title">Steering heat off</div>
+            <div class="command-copy">Disables steering wheel heating.</div>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Disable</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="battery_heat_on">
+            <div class="command-title">Battery heat on</div>
+            <div class="command-copy">Enables battery heating.</div>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Enable</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="battery_heat_off">
+            <div class="command-title">Battery heat off</div>
+            <div class="command-copy">Disables battery heating.</div>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Disable</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="driver_seat_heat">
+            <div class="command-title">Driver seat heat</div>
+            <div class="command-copy">Set driver seat heat level.</div>
+            <label>Level
+              <select name="level">
+                {% for level in seat_levels %}
+                <option value="{{ level.value }}">{{ level.label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Set driver seat</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="passenger_seat_heat">
+            <div class="command-title">Passenger seat heat</div>
+            <div class="command-copy">Set front passenger seat heat level.</div>
+            <label>Level
+              <select name="level">
+                {% for level in seat_levels %}
+                <option value="{{ level.value }}">{{ level.label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Set passenger seat</button>
+          </form>
+        </div>
+      </article>
+
+      <article class="panel span-4">
+        <h2>Location</h2>
+        {% if map_embed_url %}
+        <iframe class="map" src="{{ map_embed_url }}" title="Vehicle map" loading="lazy"></iframe>
+        <p class="tiny">GPS {{ snapshot.latitude }}, {{ snapshot.longitude }}</p>
+        {% else %}
+        <div class="list-row"><span>Status</span><strong>GPS not available</strong></div>
+        {% endif %}
+      </article>
+
+      {% if snapshot.errors %}
+      <article class="panel span-6">
+        <h2>Fetch Errors</h2>
+        <div class="capabilities">
+          {% for key, value in snapshot.errors.items() %}
+          <div class="list-row"><span>{{ key }}</span><strong>{{ value }}</strong></div>
+          {% endfor %}
+        </div>
+      </article>
+      {% endif %}
+
+      <article class="panel span-6">
+        <h2>Raw Payload</h2>
+        <details>
+          <summary>Show current snapshot JSON</summary>
+          <pre>{{ raw_payload_json }}</pre>
+        </details>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
