@@ -4,7 +4,7 @@ A standalone FastAPI + Jinja web app built around [`pyBYD`](https://github.com/j
 
 It is designed to:
 
-- run as its own `systemd` service
+- run in Docker and optionally be controlled by `systemd`
 - show live BYD vehicle telemetry in the browser
 - expose remote command buttons and options
 - be reverse-proxied by Caddy or nginx if you want HTTPS
@@ -62,7 +62,36 @@ chmod +x run.sh
 
 Open [http://localhost:8010](http://localhost:8010).
 
-## Install as a systemd service
+## Run in Docker
+
+Copy the env file first:
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+Build and run:
+
+```bash
+docker compose up -d --build
+```
+
+Check logs:
+
+```bash
+docker compose logs -f
+```
+
+Stop:
+
+```bash
+docker compose down
+```
+
+The app will be available on `http://<host>:8010` by default.
+
+## Run Docker with systemd
 
 ```bash
 sudo mkdir -p /opt/byd-web-console
@@ -70,11 +99,10 @@ sudo rsync -av ./ /opt/byd-web-console/
 cd /opt/byd-web-console
 cp .env.example .env
 nano .env
-chmod +x run.sh
-sudo cp deploy/byd-web-console.service /etc/systemd/system/byd-web-console.service
+sudo cp deploy/byd-web-console-container.service /etc/systemd/system/byd-web-console.service
 ```
 
-Edit the service file if you want a different `User`, `Group`, or deployment path.
+This unit uses Docker Compose, so the host no longer needs Python 3.11 installed locally.
 
 Then enable and start it:
 
@@ -106,4 +134,5 @@ byd.example.com {
 
 - The app fetches fresh telemetry on each page load instead of relying on a background database.
 - If `BYD_CONTROL_PIN` is not set, telemetry still works but remote action buttons are disabled.
-- The provided `systemd` unit assumes deployment to `/opt/byd-web-console`.
+- The Docker image uses Python 3.11 inside the container, which avoids Debian 11 host Python limitations.
+- The provided container `systemd` unit assumes deployment to `/opt/byd-web-console`.

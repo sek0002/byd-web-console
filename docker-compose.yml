@@ -1,0 +1,12 @@
+services:
+  byd-web-console:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: byd-web-console:latest
+    container_name: byd-web-console
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-8010}:8010"
+    restart: unless-stopped
