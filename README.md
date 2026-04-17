@@ -20,6 +20,7 @@ It is designed to:
 - steering wheel heat on and off
 - driver and passenger seat heat level controls
 - GPS map panel when location data is available
+- Google Maps live user location tracker with shareable current-location link
 
 ## Configuration
 
@@ -48,9 +49,16 @@ Optional:
 BYD_VIN=your-vin-if-you-have-more-than-one-vehicle
 BYD_TIME_ZONE=Australia/Melbourne
 BYD_BASE_URL=https://dilinksuperappserver-au.byd.auto
+GOOGLE_MAPS_API_KEY=your-google-maps-javascript-api-key
 HOST=0.0.0.0
 PORT=8010
 ```
+
+To enable the live/share location tracker, create a Google Maps JavaScript API key and set `GOOGLE_MAPS_API_KEY`. The browser will then be able to:
+
+- show the vehicle and user on one live Google map
+- continuously track the user's position via browser geolocation
+- share or copy the user's current Google Maps location link
 
 ## Run locally
 

@@ -60,6 +60,18 @@ def _map_embed(latitude: object, longitude: object) -> str | None:
     )
 
 
+def _google_maps_script_url(api_key: str) -> str | None:
+    if not api_key:
+        return None
+    return "https://maps.googleapis.com/maps/api/js?" + urlencode(
+        {
+            "key": api_key,
+            "loading": "async",
+            "callback": "initUserLiveMap",
+        }
+    )
+
+
 def _view_model(snapshot: dict[str, object]) -> dict[str, object]:
     return {
         **snapshot,
@@ -127,6 +139,8 @@ async def index(
             "error": error,
             "commands_enabled": service.commands_enabled(),
             "map_embed_url": _map_embed(snapshot.get("latitude"), snapshot.get("longitude")),
+            "google_maps_enabled": bool(settings.google_maps_api_key),
+            "google_maps_script_url": _google_maps_script_url(settings.google_maps_api_key),
             "capability_rows": capability_rows,
             "climate_temperatures": list(range(17, 31)),
             "climate_durations": [10, 15, 20, 25, 30],
@@ -177,3 +191,15 @@ async def command(
 @app.get("/healthz")
 async def healthz() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/vehicle-location")
+async def vehicle_location() -> dict[str, object]:
+    snapshot = (await service.fetch_snapshot()).payload
+    return {
+        "vin": snapshot.get("vin"),
+        "latitude": snapshot.get("latitude"),
+        "longitude": snapshot.get("longitude"),
+        "observed_at": snapshot.get("observed_at"),
+        "model_name": snapshot.get("model_name"),
+    }

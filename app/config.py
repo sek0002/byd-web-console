@@ -29,6 +29,7 @@ class Settings:
     byd_vin: str = os.getenv("BYD_VIN", "")
     byd_control_pin: str = os.getenv("BYD_CONTROL_PIN", "")
     byd_time_zone: str = os.getenv("BYD_TIME_ZONE", "")
+    google_maps_api_key: str = os.getenv("GOOGLE_MAPS_API_KEY", "")
     session_secret: str = os.getenv("SESSION_SECRET", "change-me")
     base_dir: Path = Path(__file__).resolve().parents[1]
 

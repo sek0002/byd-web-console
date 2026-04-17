@@ -172,6 +172,36 @@
       border-radius: 18px;
       background: #020617;
     }
+    .map-shell {
+      display: grid;
+      gap: 12px;
+    }
+    .live-map {
+      width: 100%;
+      min-height: 380px;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at top right, rgba(56, 189, 248, 0.15), transparent 28%),
+        #020617;
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+    .map-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .status-line {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .status-line strong {
+      color: var(--text);
+    }
     details {
       margin-top: 14px;
       background: var(--panel-soft);
@@ -427,11 +457,26 @@
 
       <article class="panel span-4">
         <h2>Location</h2>
+        {% if google_maps_enabled %}
+        <div class="map-shell">
+          <div id="live-user-map" class="live-map" aria-label="Live user and vehicle map"></div>
+          <div class="map-actions">
+            <button type="button" id="start-live-location">Start live tracking</button>
+            <button type="button" id="share-live-location" class="secondary">Share my location</button>
+          </div>
+          <div id="live-location-status" class="status-line">
+            <strong>Status:</strong> Waiting to start user location tracking.
+          </div>
+        </div>
+        <p class="tiny">Vehicle GPS {{ snapshot.latitude or "-" }}, {{ snapshot.longitude or "-" }}</p>
+        {% else %}
         {% if map_embed_url %}
         <iframe class="map" src="{{ map_embed_url }}" title="Vehicle map" loading="lazy"></iframe>
         <p class="tiny">GPS {{ snapshot.latitude }}, {{ snapshot.longitude }}</p>
         {% else %}
         <div class="list-row"><span>Status</span><strong>GPS not available</strong></div>
+        {% endif %}
+        <p class="tiny">Set <code>GOOGLE_MAPS_API_KEY</code> to enable live user tracking and location sharing.</p>
         {% endif %}
       </article>
 
@@ -455,5 +500,186 @@
       </article>
     </section>
   </main>
+  {% if google_maps_enabled %}
+  <script>
+    const vehicleCoords = {
+      lat: {{ snapshot.latitude if snapshot.latitude is not none else 'null' }},
+      lng: {{ snapshot.longitude if snapshot.longitude is not none else 'null' }},
+    };
+
+    let liveMap;
+    let userMarker;
+    let vehicleMarker;
+    let accuracyCircle;
+    let watchId = null;
+
+    function setLiveStatus(message) {
+      const statusEl = document.getElementById("live-location-status");
+      if (statusEl) {
+        statusEl.innerHTML = "<strong>Status:</strong> " + message;
+      }
+    }
+
+    function fitLiveBounds(userLatLng) {
+      if (!liveMap || !window.google) return;
+      const bounds = new google.maps.LatLngBounds();
+      if (vehicleCoords.lat !== null && vehicleCoords.lng !== null) {
+        bounds.extend(vehicleCoords);
+      }
+      if (userLatLng) {
+        bounds.extend(userLatLng);
+      }
+      if (!bounds.isEmpty()) {
+        liveMap.fitBounds(bounds, 72);
+      }
+    }
+
+    function updateUserLocation(position) {
+      const userLatLng = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      };
+
+      if (!userMarker) {
+        userMarker = new google.maps.Marker({
+          map: liveMap,
+          position: userLatLng,
+          title: "Your live location",
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: "#10b981",
+            fillOpacity: 1,
+            strokeColor: "#ecfeff",
+            strokeWeight: 2,
+          },
+        });
+      } else {
+        userMarker.setPosition(userLatLng);
+      }
+
+      if (!accuracyCircle) {
+        accuracyCircle = new google.maps.Circle({
+          map: liveMap,
+          strokeColor: "#10b981",
+          strokeOpacity: 0.45,
+          strokeWeight: 1,
+          fillColor: "#10b981",
+          fillOpacity: 0.12,
+        });
+      }
+
+      accuracyCircle.setCenter(userLatLng);
+      accuracyCircle.setRadius(position.coords.accuracy || 0);
+      fitLiveBounds(userLatLng);
+      setLiveStatus(
+        `Tracking live. Accuracy ${Math.round(position.coords.accuracy || 0)}m. ` +
+        `User ${userLatLng.lat.toFixed(5)}, ${userLatLng.lng.toFixed(5)}`
+      );
+    }
+
+    function startLiveTracking() {
+      if (!navigator.geolocation) {
+        setLiveStatus("Browser geolocation is not available.");
+        return;
+      }
+      if (watchId !== null) {
+        setLiveStatus("Live tracking is already active.");
+        return;
+      }
+      setLiveStatus("Requesting live location permission...");
+      watchId = navigator.geolocation.watchPosition(
+        updateUserLocation,
+        (error) => {
+          const messages = {
+            1: "Location permission was denied.",
+            2: "Position is unavailable.",
+            3: "Location request timed out.",
+          };
+          setLiveStatus(messages[error.code] || error.message || "Unable to read live location.");
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 5000,
+          timeout: 15000,
+        }
+      );
+    }
+
+    async function shareCurrentLocation() {
+      if (!navigator.geolocation) {
+        setLiveStatus("Browser geolocation is not available.");
+        return;
+      }
+      setLiveStatus("Capturing current location for sharing...");
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude.toFixed(6);
+          const lng = position.coords.longitude.toFixed(6);
+          const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+          const shareText = `My live location: ${mapUrl}`;
+          try {
+            if (navigator.share) {
+              await navigator.share({
+                title: "My live location",
+                text: shareText,
+                url: mapUrl,
+              });
+            } else if (navigator.clipboard) {
+              await navigator.clipboard.writeText(shareText);
+            } else {
+              throw new Error("Clipboard sharing is unavailable.");
+            }
+            setLiveStatus(`Shared current location ${lat}, ${lng}`);
+          } catch (error) {
+            setLiveStatus(error.message || "Unable to share current location.");
+          }
+        },
+        (error) => {
+          const messages = {
+            1: "Location permission was denied.",
+            2: "Position is unavailable.",
+            3: "Location request timed out.",
+          };
+          setLiveStatus(messages[error.code] || error.message || "Unable to capture current location.");
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 5000,
+          timeout: 15000,
+        }
+      );
+    }
+
+    window.initUserLiveMap = function initUserLiveMap() {
+      const defaultCenter = vehicleCoords.lat !== null && vehicleCoords.lng !== null
+        ? vehicleCoords
+        : { lat: -37.8136, lng: 144.9631 };
+
+      liveMap = new google.maps.Map(document.getElementById("live-user-map"), {
+        center: defaultCenter,
+        zoom: vehicleCoords.lat !== null ? 12 : 10,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+      });
+
+      if (vehicleCoords.lat !== null && vehicleCoords.lng !== null) {
+        vehicleMarker = new google.maps.Marker({
+          map: liveMap,
+          position: vehicleCoords,
+          title: "Vehicle location",
+        });
+        setLiveStatus(`Vehicle loaded at ${vehicleCoords.lat.toFixed(5)}, ${vehicleCoords.lng.toFixed(5)}.`);
+      } else {
+        setLiveStatus("Vehicle GPS is not available yet. You can still track your own live position.");
+      }
+
+      document.getElementById("start-live-location")?.addEventListener("click", startLiveTracking);
+      document.getElementById("share-live-location")?.addEventListener("click", shareCurrentLocation);
+    };
+  </script>
+  <script async defer src="{{ google_maps_script_url }}"></script>
+  {% endif %}
 </body>
 </html>
