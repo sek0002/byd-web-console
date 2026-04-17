@@ -75,7 +75,22 @@ def _view_model(snapshot: dict[str, object]) -> dict[str, object]:
         "climate_display": "On" if snapshot.get("climate_on") is True else ("Off" if snapshot.get("climate_on") is False else "-"),
         "steering_heat_display": "On" if snapshot.get("steering_heat_on") is True else ("Off" if snapshot.get("steering_heat_on") is False else "-"),
         "battery_heat_display": "On" if snapshot.get("battery_heat_on") is True else ("Off" if snapshot.get("battery_heat_on") is False else "-"),
+        "smart_charge_display": "Enabled" if snapshot.get("smart_charge_enabled") is True else ("Disabled" if snapshot.get("smart_charge_enabled") is False else "-"),
+        "smart_charge_window_display": _smart_charge_window_text(snapshot),
     }
+
+
+def _smart_charge_window_text(snapshot: dict[str, object]) -> str:
+    start_hour = snapshot.get("smart_charge_start_hour")
+    start_minute = snapshot.get("smart_charge_start_minute")
+    end_hour = snapshot.get("smart_charge_end_hour")
+    end_minute = snapshot.get("smart_charge_end_minute")
+    if None in {start_hour, start_minute, end_hour, end_minute}:
+        return "-"
+    try:
+        return f"{int(start_hour):02d}:{int(start_minute):02d} - {int(end_hour):02d}:{int(end_minute):02d}"
+    except (TypeError, ValueError):
+        return "-"
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -115,6 +130,9 @@ async def index(
             "capability_rows": capability_rows,
             "climate_temperatures": list(range(17, 31)),
             "climate_durations": [10, 15, 20, 25, 30],
+            "smart_charge_soc_options": list(range(50, 101, 5)),
+            "time_hours": list(range(24)),
+            "time_minutes": [0, 15, 30, 45],
             "seat_levels": [
                 {"value": "off", "label": "Off"},
                 {"value": "low", "label": "Low"},
@@ -131,6 +149,11 @@ async def command(
     temperature: str = Form(default="21"),
     duration: str = Form(default="20"),
     level: str = Form(default="off"),
+    target_soc: str = Form(default="80"),
+    start_hour: str = Form(default="0"),
+    start_minute: str = Form(default="0"),
+    end_hour: str = Form(default="0"),
+    end_minute: str = Form(default="0"),
 ) -> RedirectResponse:
     try:
         await service.run_command(
@@ -139,6 +162,11 @@ async def command(
                 "temperature": temperature,
                 "duration": duration,
                 "level": level,
+                "target_soc": target_soc,
+                "start_hour": start_hour,
+                "start_minute": start_minute,
+                "end_hour": end_hour,
+                "end_minute": end_minute,
             },
         )
     except Exception as exc:

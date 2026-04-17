@@ -245,6 +245,8 @@
           <div class="metric"><div class="metric-label">Climate</div><div class="metric-value">{{ snapshot.climate_display }}</div></div>
           <div class="metric"><div class="metric-label">Steering Heat</div><div class="metric-value">{{ snapshot.steering_heat_display }}</div></div>
           <div class="metric"><div class="metric-label">Battery Heat</div><div class="metric-value">{{ snapshot.battery_heat_display }}</div></div>
+          <div class="metric"><div class="metric-label">Smart Charge</div><div class="metric-value">{{ snapshot.smart_charge_display }}</div></div>
+          <div class="metric"><div class="metric-label">Charge Window</div><div class="metric-value">{{ snapshot.smart_charge_window_display }}</div></div>
           <div class="metric"><div class="metric-label">Odometer</div><div class="metric-value">{{ snapshot.odometer_display }}</div></div>
         </div>
       </article>
@@ -340,6 +342,59 @@
             <div class="command-title">Battery heat off</div>
             <div class="command-copy">Disables battery heating.</div>
             <button type="submit" {% if not commands_enabled %}disabled{% endif %}>Disable</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="smart_charge_enable">
+            <div class="command-title">Enable smart charging</div>
+            <div class="command-copy">Turns smart charging on without needing the control PIN.</div>
+            <button type="submit">Enable</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="smart_charge_disable">
+            <div class="command-title">Disable smart charging</div>
+            <div class="command-copy">Turns smart charging off without changing the saved window.</div>
+            <button type="submit" class="secondary">Disable</button>
+          </form>
+          <form method="post" action="/command">
+            <input type="hidden" name="action" value="smart_charge_save">
+            <div class="command-title">Save smart charge window</div>
+            <div class="command-copy">Set the target SoC and allowed charging window.</div>
+            <label>Target SoC
+              <select name="target_soc">
+                {% for soc in smart_charge_soc_options %}
+                <option value="{{ soc }}" {% if soc == (snapshot.smart_charge_target_soc or 80) %}selected{% endif %}>{{ soc }}%</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>Start time
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <select name="start_hour">
+                  {% for hour in time_hours %}
+                  <option value="{{ hour }}" {% if hour == (snapshot.smart_charge_start_hour or 0) %}selected{% endif %}>{{ "%02d"|format(hour) }}</option>
+                  {% endfor %}
+                </select>
+                <select name="start_minute">
+                  {% for minute in time_minutes %}
+                  <option value="{{ minute }}" {% if minute == (snapshot.smart_charge_start_minute or 0) %}selected{% endif %}>{{ "%02d"|format(minute) }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </label>
+            <label>End time
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <select name="end_hour">
+                  {% for hour in time_hours %}
+                  <option value="{{ hour }}" {% if hour == (snapshot.smart_charge_end_hour or 0) %}selected{% endif %}>{{ "%02d"|format(hour) }}</option>
+                  {% endfor %}
+                </select>
+                <select name="end_minute">
+                  {% for minute in time_minutes %}
+                  <option value="{{ minute }}" {% if minute == (snapshot.smart_charge_end_minute or 0) %}selected{% endif %}>{{ "%02d"|format(minute) }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </label>
+            <button type="submit">Save smart charging</button>
           </form>
           <form method="post" action="/command">
             <input type="hidden" name="action" value="driver_seat_heat">

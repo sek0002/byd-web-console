@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from pybyd import BydClient, BydConfig, SeatLevel, SeatPosition
+from pybyd.models.smart_charging import SmartChargingSchedule
 from pybyd.models.realtime import ChargingState, ConnectState, LockState, WindowState
 
 from app.config import Settings
@@ -65,7 +66,7 @@ class BydConsoleService:
             vehicle, vin = await self._resolve_vehicle(client)
             car = await client.get_car(vin, vehicle=vehicle)
 
-            if action != "refresh":
+            if self._action_requires_pin(action):
                 await client.verify_command_access(vin)
 
             handlers: dict[str, Callable[[], Any]] = {
@@ -92,12 +93,36 @@ class BydConsoleService:
                     SeatPosition.COPILOT,
                     _seat_level(options.get("level", "off")),
                 ),
+                "smart_charge_enable": lambda: client.toggle_smart_charging(vin, enable=True),
+                "smart_charge_disable": lambda: client.toggle_smart_charging(vin, enable=False),
+                "smart_charge_save": lambda: client.save_charging_schedule(
+                    vin,
+                    SmartChargingSchedule(
+                        vin=vin,
+                        target_soc=int(options.get("target_soc", "80")),
+                        start_hour=int(options.get("start_hour", "0")),
+                        start_minute=int(options.get("start_minute", "0")),
+                        end_hour=int(options.get("end_hour", "0")),
+                        end_minute=int(options.get("end_minute", "0")),
+                        smart_charge_switch=1,
+                        raw={},
+                    ),
+                ),
             }
             handler = handlers.get(action)
             if handler is None:
                 raise ValueError(f"Unsupported action: {action}")
             await handler()
             return vin
+
+    @staticmethod
+    def _action_requires_pin(action: str) -> bool:
+        return action not in {
+            "refresh",
+            "smart_charge_enable",
+            "smart_charge_disable",
+            "smart_charge_save",
+        }
 
     async def _resolve_vehicle(self, client: BydClient) -> tuple[Any, str]:
         vehicles = await client.get_vehicles()
@@ -128,6 +153,7 @@ class BydConsoleService:
         gps_data = self._section("gps", gps, errors)
         hvac_data = self._section("hvac", hvac, errors)
         charging_data = self._section("charging", charging, errors)
+        smart_charge_raw = charging_data.get("raw") if isinstance(charging_data.get("raw"), dict) else {}
 
         power_w = _pick(realtime_data.get("gl"), realtime_data.get("total_power"))
         speed_kph = realtime_data.get("speed")
@@ -164,6 +190,12 @@ class BydConsoleService:
             "latitude": gps_data.get("latitude"),
             "longitude": gps_data.get("longitude"),
             "observed_at": _pick(realtime_data.get("timestamp"), charging_data.get("update_time"), gps_data.get("gps_timestamp")),
+            "smart_charge_enabled": _smart_charge_enabled(charging_data),
+            "smart_charge_target_soc": _pick(smart_charge_raw.get("targetSoc"), smart_charge_raw.get("target_soc")),
+            "smart_charge_start_hour": _pick(smart_charge_raw.get("startHour"), smart_charge_raw.get("start_hour")),
+            "smart_charge_start_minute": _pick(smart_charge_raw.get("startMinute"), smart_charge_raw.get("start_minute")),
+            "smart_charge_end_hour": _pick(smart_charge_raw.get("endHour"), smart_charge_raw.get("end_hour")),
+            "smart_charge_end_minute": _pick(smart_charge_raw.get("endMinute"), smart_charge_raw.get("end_minute")),
             "capabilities": capabilities,
             "vehicle": vehicle.model_dump(mode="json"),
             "realtime": realtime_data,
@@ -241,6 +273,21 @@ def _charging(charging_state: Any, fallback: Any) -> bool | None:
     if name in {ChargingState.NOT_CHARGING.name, ChargingState.CONNECTED.name}:
         return False
     return None
+
+
+def _smart_charge_enabled(charging_data: dict[str, Any]) -> bool | None:
+    raw = charging_data.get("raw") if isinstance(charging_data.get("raw"), dict) else {}
+    value = _pick(
+        raw.get("smartChargeSwitch"),
+        raw.get("smart_charge_switch"),
+        charging_data.get("smart_charge_switch"),
+    )
+    if value in (None, ""):
+        return None
+    try:
+        return int(value) == 1
+    except (TypeError, ValueError):
+        return None
 
 
 def _hvac_on(value: Any) -> bool | None:
